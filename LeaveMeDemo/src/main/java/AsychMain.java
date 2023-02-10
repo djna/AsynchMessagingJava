@@ -1,5 +1,3 @@
-package org.djna.async;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 import javax.jms.Connection;
@@ -29,25 +27,29 @@ public class AsychMain {
             try {
                 howManyToSend = Integer.valueOf(args[1]);
             } catch (NumberFormatException nfe) {
-                usageExit("Number of messages to send, not a valid number");
+                usageExit("Number of messages to send, not a valid number : " + args[1]);
             }
         }
         if (args.length >= 3) {
             receive = ("receive".equalsIgnoreCase(args[2]));
         }
 
+        //String destination = "Queue.PointToPoint.OneWay.Traditional";
+        String destination = "audit";
+
         if (howManyToSend > 0) {
             System.out.printf("Sending %d messages%n", howManyToSend);
             new Thread(new Sender(
                     conn.createSession(false, Session.CLIENT_ACKNOWLEDGE),
-                    "Queue.PointToPoint.OneWay.Traditional",
+                    destination,
                     howManyToSend)
                   ).start();
 
         }
         if ( receive) {
             System.out.printf("Receiving messages%n");
-            new Thread(new Receiver(conn.createSession(false, Session.CLIENT_ACKNOWLEDGE), "Queue.PointToPoint.OneWay.Traditional")).start();
+            new Thread(new Receiver(conn.createSession(false, Session.CLIENT_ACKNOWLEDGE),
+                    destination)).start();
         }
     }
 

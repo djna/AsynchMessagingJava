@@ -1,5 +1,3 @@
-package org.djna.async;
-
 import javax.jms.*;
 
 public  class Receiver implements Runnable, MessageListener {
@@ -24,7 +22,8 @@ public  class Receiver implements Runnable, MessageListener {
     public void onMessage(Message message) {
         try {
             System.out.println(String.format("received message '%s' with message id '%s'", ((TextMessage) message).getText(), message.getJMSMessageID()));
-            message.acknowledge();
+            //message.acknowledge();
+            throw new RuntimeException("Poison!");
         } catch (JMSException e) {
             throw new RuntimeException(e);
         }

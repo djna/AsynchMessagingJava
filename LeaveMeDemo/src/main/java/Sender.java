@@ -1,5 +1,3 @@
-package org.djna.async;
-
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
@@ -26,6 +24,7 @@ public  class Sender implements Runnable {
     public void run() {
         try {
             MessageProducer messageProducer = session.createProducer(session.createQueue(destination));
+            messageProducer.setPriority(2);
             long counter = 0;
 
             while (counter < howManyToSend) {
