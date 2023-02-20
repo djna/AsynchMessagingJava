@@ -32,7 +32,7 @@ public  class Sender implements Runnable {
 
             while (counter < howManyToSend) {
                 Map info = new HashMap();
-                info.put("user", "DaveA");
+                info.put("user", "poison");
                 info.put("search", "hotel");
                 info.put("city", "Valencia, ESP");
                 String [] criterionArray = {"budget", "breakfast"};

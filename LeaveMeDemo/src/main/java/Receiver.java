@@ -3,6 +3,7 @@ import com.google.gson.reflect.TypeToken;
 
 import javax.jms.*;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public  class Receiver implements Runnable, MessageListener {
@@ -30,10 +31,18 @@ public  class Receiver implements Runnable, MessageListener {
             String payload = ((TextMessage) message).getText();
             Gson gson = new Gson();
             Map map = gson.fromJson(payload, HashMap.class);
-            System.out.println(String.format("User %s", map.get("user") ) );
-            // example of rejecting message
-            // throw new RuntimeException("Poison!");
+            String user = map.get("user").toString();
+            System.out.println(String.format("User %s", user ) );
+            // example of a bad message, if the user is called "poison"
+            boolean isPoison = "poison".equalsIgnoreCase(user);
+            if ( isPoison){
+                System.out.println(String.format("Bad message, user: %s", user ) );
+                session.rollback();
+                throw new RuntimeException("Poison!");
+            }
+            message.acknowledge();
         } catch (JMSException e) {
+
             throw new RuntimeException(e);
         }
     }
