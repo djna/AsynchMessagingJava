@@ -5,8 +5,7 @@ import javax.jms.*;
 import java.util.HashMap;
 import java.util.Map;
 
-// example of a service that receives a request message
-// and sends a response to queue specified in the request header
+// Service that receives a request message and sends a response to queue specified in the request header
 // setting a correllation id in the response message
 //
 // command line arguments optional: clientId requestQueueName
@@ -36,49 +35,46 @@ public class Responder {
         receive(conn, requestQueue);
     }
 
-    private static void usageExit(String message) {
-        System.out.println(message);
-        System.out.println("Argument 0, optional: a client id, default Responder");
-        System.out.println("Argument 1, optional: request queue name, default bookingRequest");
-    }
-
+    /*
+     * Receive requests and send responses
+     */
     private static void receive(Connection conn, String requestQueue) throws JMSException{
-        Session session = conn.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+        Session session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
         MessageConsumer consumer = session.createConsumer(session.createQueue(requestQueue));
         consumer.setMessageListener(new MessageListener() {
             @Override
-            public void onMessage(Message message) {
+            public void onMessage(Message requestMessage) {
                 try {
-                    System.out.println(String.format("received message '%s' with message id '%s'", ((TextMessage) message).getText(), message.getJMSMessageID()));
-                    String payload = null;
-                    payload = ((TextMessage) message).getText();
+                    System.out.println(String.format("received message '%s' with message id '%s'", ((TextMessage) requestMessage).getText(), requestMessage.getJMSMessageID()));
+                    // payload expected to be a JSON string, parse to a HashMap
+                    String payload = ((TextMessage) requestMessage).getText();
                     Gson gson = new Gson();
-                    Map map = gson.fromJson(payload, HashMap.class);
-                    System.out.println(String.format("User %s", map.get("user") ) );
+                    Map<String, Object> map = gson.fromJson(payload, HashMap.class);
 
-                    Destination replyQueue = message.getJMSReplyTo();
-                    String correlationId = message.getJMSCorrelationID();
-
+                    // TODO validate received message
+                    // expect to have request to book a room for a user
                     String response = String.format("Request accepted: %s for %s",
                                          map.get("book"),
                                          map.get("user")
                                          );
+                    // get reply information from request header
+                    Destination replyQueue = requestMessage.getJMSReplyTo();
+                    String correlationId = requestMessage.getJMSCorrelationID();
+                    int priority = requestMessage.getJMSPriority();
+                    int deliveryMode = requestMessage.getJMSDeliveryMode();
+
                     TextMessage responseMessage = session.createTextMessage(response);
-                    responseMessage.setJMSCorrelationID(message.getJMSCorrelationID());
+                    responseMessage.setJMSCorrelationID(requestMessage.getJMSCorrelationID());
 
                     MessageProducer messageProducer = session.createProducer(replyQueue);
-                    // TODO adjust priority and delivery mode to be same as request message
+                    // priority and delivery mode to be same as request message
+                    messageProducer.setPriority(priority);
+                    messageProducer.setDeliveryMode(deliveryMode);
 
-                    messageProducer.setPriority(3);
-                    messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
                     messageProducer.send(responseMessage);
                     System.out.println(String.format("sent response to '%s' ",
                                           replyQueue.toString()) );
-
-                    // we have processed the message
-                    message.acknowledge();
-
-
+                    
                 } catch (JMSException e) {
                     e.printStackTrace();
                 }
